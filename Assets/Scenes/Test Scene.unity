@@ -476,7 +476,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   targetPosition: {fileID: 768437350}
   collidingVoxel: {fileID: 757494792}
-  pointRadius: 0.05
+  pointRadius: 0.1
   initialVelocity: 0.005
 --- !u!1 &1652730062
 GameObject:

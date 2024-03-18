@@ -2,23 +2,36 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class VoxelCollider : MonoBehaviour
+public class CollisionController : MonoBehaviour
 {
     public Vector3 size;
+    public List<VoxelRigidBody> rigidBodies = new List<VoxelRigidBody>();
+    public Vector3 gravity = new Vector3(0f,-9.8f,0f);
 
-    public VoxelCollider(Vector3 center, Vector3 size)
+    void FixedUpdate()
     {
-        this.size = size;
+        foreach (VoxelRigidBody rb in rigidBodies) {
+            rb.transform.Translate(rb.velocity);
+            if (isIntersecting(rb.transform.position, rb.pointRadius)) {
+                Ray closestPoint = findClosestPoint(rb.transform.position);
+                rb.transform.position = closestPoint.origin + closestPoint.direction * rb.pointRadius;
+                rb.velocity = ReflectVector(closestPoint.direction, rb.velocity);
+            }
+
+            // apply gravity
+            //rb.velocity += gravity * Time.fixedDeltaTime;
+
+        }
     }
 
     public bool isIntersecting(Vector3 point)
     {
         Vector3 pointTransformed = point - transform.position;
         Vector3 boxMin = -(size * 0.5f);
-        Vector3 boxMax =  (size * 0.5f);
+        Vector3 boxMax = (size * 0.5f);
 
         return
-            pointTransformed.x >= boxMin.x && pointTransformed.x <= boxMax.x && 
+            pointTransformed.x >= boxMin.x && pointTransformed.x <= boxMax.x &&
             pointTransformed.y >= boxMin.y && pointTransformed.y <= boxMax.y &&
             pointTransformed.z >= boxMin.z && pointTransformed.z <= boxMax.z;
     }
@@ -33,9 +46,9 @@ public class VoxelCollider : MonoBehaviour
     /// </summary>
     /// <param name="srcPoint"></param>
     /// <returns>a ray representing the point and its normal</returns>
-    public Ray findClosestPoint(Vector3 srcPoint) 
+    public Ray findClosestPoint(Vector3 srcPoint)
     {
-        Vector3 boxRadius = size * 0.5f; 
+        Vector3 boxRadius = size * 0.5f;
         Vector3 srcPointBoxSpace = srcPoint - transform.position;
         if (isIntersecting(srcPoint))
         {
@@ -59,21 +72,31 @@ public class VoxelCollider : MonoBehaviour
 
         }
         else
-        { 
+        {
             Vector3 pointClamped = Vector3.zero;
             for (int i = 0; i < 3; i++)
             {
                 pointClamped[i] = Mathf.Clamp(srcPointBoxSpace[i], -boxRadius[i], boxRadius[i]);
             }
-            
-            return new Ray(pointClamped + transform.position, (srcPoint - pointClamped).normalized);
+
+            return new Ray(pointClamped + transform.position, (srcPointBoxSpace - pointClamped).normalized);
         }
+    }
+
+    public Vector3 ReflectVector(Vector3 normal, Vector3 vec) {
+        return vec - Vector3.Dot(normal.normalized, vec) * normal.normalized * 2.0f;
     }
 
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.black;
         Gizmos.DrawWireCube(transform.position, size);
+
+        foreach (VoxelRigidBody rb in rigidBodies) {
+            Gizmos.color = Color.blue;
+            Gizmos.DrawRay(findClosestPoint(rb.transform.position));
+
+        }
     }
 }
 
